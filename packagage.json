@@ -1,0 +1,48 @@
+{
+  "name": "simulador-industrial-3d",
+  "version": "1.0.0",
+  "description": "Simulador 3D para análisis de colisiones, robótica industrial y optimización de trayectorias en líneas de producción",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "serve": "npx serve .",
+    "dev": "npx live-server --port=8000",
+    "deploy": "echo 'Deploy to GitHub Pages or your preferred hosting platform'"
+  },
+  "keywords": [
+    "3d",
+    "simulator",
+    "physics",
+    "robotics",
+    "industrial",
+    "collision",
+    "threejs",
+    "webgl",
+    "education",
+    "engineering"
+  ],
+  "author": "MiniMax Agent",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tu-usuario/simulador-industrial-3d.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tu-usuario/simulador-industrial-3d/issues"
+  },
+  "homepage": "https://tu-usuario.github.io/simulador-industrial-3d/",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ],
+  "files": [
+    "index.html",
+    "styles.css",
+    "script.js",
+    "README.md"
+  ]
+}
