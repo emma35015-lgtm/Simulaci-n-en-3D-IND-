@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Industrial 3D - Línea de Producción</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    
+    <!-- Three.js -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
+    
+    <!-- Cannon.js Physics -->
+    <script src="https://cdn.jsdelivr.net/npm/cannon@0.20.0/build/cannon.min.js"></script>
+    
+    <link rel="stylesheet" href="styles.css">
+    
+    <script>
+        // Verificar dependencias antes de cargar la aplicación
+        function checkDependencies() {
+            console.log('🔍 Verificando dependencias...');
+            
+            if (typeof THREE === 'undefined') {
+                console.error('❌ Three.js no está disponible');
+                document.body.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100vh;background:#000;color:#fff;font-family:Arial;"><h1>Error: Three.js no está disponible. Por favor, verifica tu conexión a internet y recarga la página.</h1></div>';
+                return false;
+            }
+            
+            if (typeof CANNON === 'undefined') {
+                console.error('❌ Cannon.js no está disponible');
+                document.body.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100vh;background:#000;color:#fff;font-family:Arial;"><h1>Error: Cannon.js no está disponible. Por favor, verifica tu conexión a internet y recarga la página.</h1></div>';
+                return false;
+            }
+            
+            console.log('✅ Dependencias verificadas');
+            return true;
+        }
+    </script>
+</head>
+<body>
+    <!-- Canvas 3D Principal -->
+    <canvas id="canvas3d"></canvas>
+    
+    <!-- Panel de Control Principal (Izquierda) -->
+    <div class="control-panel left-panel" id="controlPanel">
+        <div class="panel-header">
+            <h2>Panel de Control</h2>
+            <button class="panel-toggle" id="toggleControl">−</button>
+        </div>
+        
+        <div class="panel-content">
+            <!-- Simulación de Colisiones -->
+            <section class="control-section">
+                <h3>Simulación de Colisiones</h3>
+                <div class="input-group">
+                    <label>Configuración de Objetos</label>
+                    <button class="btn-primary" id="addBox">Añadir Caja</button>
+                    <button class="btn-primary" id="addSphere">Añadir Esfera</button>
+                    <button class="btn-primary" id="addCylinder">Añadir Cilindro</button>
+                </div>
+                
+                <div class="input-group">
+                    <label>Masa Objetos</label>
+                    <div class="slider-input">
+                        <input type="range" id="massSlider" min="1" max="10" value="5" step="0.1">
+                        <input type="number" id="massValue" value="5" min="1" max="10" step="0.1">
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label>Coeficiente de Fricción</label>
+                    <div class="slider-input">
+                        <input type="range" id="frictionSlider" min="0" max="1" value="0.3" step="0.01">
+                        <input type="number" id="frictionValue" value="0.3" min="0" max="1" step="0.01">
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Configuración de Física -->
+            <section class="control-section">
+                <h3>Configuración de Física</h3>
+                <div class="input-group">
+                    <label>Gravedad</label>
+                    <div class="slider-input">
+                        <input type="range" id="gravitySlider" min="-50" max="0" value="-9.8" step="0.1">
+                        <input type="number" id="gravityValue" value="-9.8" min="-50" max="0" step="0.1">
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label>Restitución (Rebote)</label>
+                    <div class="slider-input">
+                        <input type="range" id="restitutionSlider" min="0" max="1" value="0.6" step="0.01">
+                        <input type="number" id="restitutionValue" value="0.6" min="0" max="1" step="0.01">
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label>Fuerza de Impulso</label>
+                    <div class="slider-input">
+                        <input type="range" id="impulseSlider" min="0" max="50" value="10" step="1">
+                        <input type="number" id="impulseValue" value="10" min="0" max="50" step="1">
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Brazos Robóticos -->
+            <section class="control-section">
+                <h3>Brazos Robóticos</h3>
+                <div class="input-group">
+                    <label>Velocidad Angular</label>
+                    <div class="slider-input">
+                        <input type="range" id="angularVelocitySlider" min="0" max="10" value="2" step="0.1">
+                        <input type="number" id="angularVelocityValue" value="2" min="0" max="10" step="0.1">
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label>Ángulo de Rotación</label>
+                    <div class="slider-input">
+                        <input type="range" id="rotationSlider" min="-180" max="180" value="45" step="5">
+                        <input type="number" id="rotationValue" value="45" min="-180" max="180" step="5">
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <button class="btn-secondary" id="activateRobot">Activar Robot</button>
+                    <button class="btn-secondary" id="resetRobot">Reset Robot</button>
+                </div>
+            </section>
+            
+            <!-- Optimización -->
+            <section class="control-section">
+                <h3>Optimización</h3>
+                <div class="input-group">
+                    <button class="btn-primary" id="optimizeLayout">Optimizar Disposición</button>
+                    <button class="btn-primary" id="optimizeTrajectory">Optimizar Trayectoria</button>
+                </div>
+                
+                <div class="input-group">
+                    <label>
+                        <input type="checkbox" id="showVelocityVectors" checked>
+                        Mostrar Vectores de Velocidad
+                    </label>
+                </div>
+                
+                <div class="input-group">
+                    <label>
+                        <input type="checkbox" id="showMomentumVectors" checked>
+                        Mostrar Vectores de Momentum
+                    </label>
+                </div>
+            </section>
+        </div>
+    </div>
+    
+    <!-- Panel de Análisis (Derecha) -->
+    <div class="analysis-panel right-panel" id="analysisPanel">
+        <div class="panel-header">
+            <h2>Análisis en Tiempo Real</h2>
+            <button class="panel-toggle" id="toggleAnalysis">−</button>
+        </div>
+        
+        <div class="panel-content">
+            <section class="analysis-section">
+                <h3>Datos de Simulación</h3>
+                <div class="data-display">
+                    <div class="data-item">
+                        <span class="data-label">Objetos Activos:</span>
+                        <span class="data-value" id="activeObjects">0</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">Colisiones Detectadas:</span>
+                        <span class="data-value" id="collisionCount">0</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">Energía Total:</span>
+                        <span class="data-value" id="totalEnergy">0.00 J</span>
+                    </div>
+                </div>
+            </section>
+            
+            <section class="analysis-section">
+                <h3>Velocidades</h3>
+                <div class="data-display">
+                    <div class="data-item">
+                        <span class="data-label">Velocidad Máxima:</span>
+                        <span class="data-value" id="maxVelocity">0.00 m/s</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">Velocidad Promedio:</span>
+                        <span class="data-value" id="avgVelocity">0.00 m/s</span>
+                    </div>
+                </div>
+            </section>
+            
+            <section class="analysis-section">
+                <h3>Robótica</h3>
+                <div class="data-display">
+                    <div class="data-item">
+                        <span class="data-label">Ángulo Actual:</span>
+                        <span class="data-value" id="currentAngle">0.0°</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">Aceleración Angular:</span>
+                        <span class="data-value" id="angularAcceleration">0.00 rad/s²</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">Trayectoria Óptima:</span>
+                        <span class="data-value" id="optimalTrajectory">No calculada</span>
+                    </div>
+                </div>
+            </section>
+            
+            <section class="analysis-section">
+                <h3>Optimización</h3>
+                <div class="data-display">
+                    <div class="data-item">
+                        <span class="data-label">Daños Minimizados:</span>
+                        <span class="data-value" id="damageReduction">0%</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">Eficiencia Trayectoria:</span>
+                        <span class="data-value" id="trajectoryEfficiency">0%</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">Estado Optimización:</span>
+                        <span class="data-value" id="optimizationStatus">Listo</span>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+    
+    <!-- HUD de Simulación (Inferior) -->
+    <div class="simulation-hud" id="simulationHud">
+        <div class="hud-content">
+            <div class="playback-controls">
+                <button class="control-btn" id="playBtn">▶</button>
+                <button class="control-btn" id="pauseBtn">⏸</button>
+                <button class="control-btn" id="resetBtn">⏹</button>
+                <button class="control-btn" id="stepBtn">⏭</button>
+            </div>
+            
+            <div class="time-controls">
+                <label>Tiempo de Simulación:</label>
+                <input type="range" id="timeSlider" min="0" max="100" value="0" step="1">
+                <span class="time-display" id="timeDisplay">00:00.0</span>
+            </div>
+            
+            <div class="simulation-info">
+                <span class="info-item">FPS: <span id="fpsCounter">60</span></span>
+                <span class="info-item">Δt: <span id="deltaTime">16.7ms</span></span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tooltip para vectores -->
+    <div class="vector-tooltip" id="vectorTooltip">
+        <div class="tooltip-content">
+            <div class="tooltip-item">
+                <span class="tooltip-label">Velocidad:</span>
+                <span class="tooltip-value" id="tooltipVelocity">0.00 m/s</span>
+            </div>
+            <div class="tooltip-item">
+                <span class="tooltip-label">Momentum:</span>
+                <span class="tooltip-value" id="tooltipMomentum">0.00 kg⋅m/s</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen" style="display: flex;">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h2>Cargando Simulador Industrial 3D</h2>
+            <p>Inicializando motor de física...</p>
+        </div>
+    </div>
+    
+    <script>
+        // Inicializar cuando las dependencias estén listas
+        document.addEventListener('DOMContentLoaded', function() {
+            if (checkDependencies()) {
+                console.log('🚀 Iniciando aplicación...');
+                // Cargar el script principal después de verificar dependencias
+                const script = document.createElement('script');
+                script.src = 'script.js';
+                document.head.appendChild(script);
+            }
+        });
+    </script>
+</body>
+</html>
